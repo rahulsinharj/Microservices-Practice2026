@@ -1,5 +1,6 @@
 package ecom_order_service.service;
 
+import ecom_order_service.client.InventoryClient;
 import ecom_order_service.controller.OrderController;
 import ecom_order_service.dto.Inventory;
 import ecom_order_service.exceptions.MyCustomRuntimeException;
@@ -23,8 +24,11 @@ public class OrderService {
     @Autowired
     private RestClient restClient;
 
-    // Call the inventory service using 'RestTemplate' to check if the product is in stock before placing an order.
-    public String placeOrder(String productId) {
+    @Autowired
+    private InventoryClient inventoryClient;
+
+    //==============: Call the inventory service using 'RestTemplate' to check if the product is in stock before placing an order.
+    public String placeOrder(Long productId) {
 
         String inventoryResponse = restTemplate.getForObject("http://localhost:8081/inventory/" + productId, String.class);
 
@@ -35,8 +39,11 @@ public class OrderService {
                 : "Product: " + productId + " is out of stock";
     }
 
-    // Call the inventory service using 'RestClient' to check if the product is in stock before placing an order.
-    public String placeOrder2(String productId) {
+
+    // Refer for more info: https://docs.spring.io/spring-framework/reference/integration/rest-clients.html#_exchange
+
+    //==============: Call the inventory service using 'RestClient' to check if the product is in stock before placing an order.
+    public String placeOrder2(Long productId) {
 
         // Without ResponseEntity return type.
 /*        String inventoryResponse = restClient.get()
@@ -45,7 +52,7 @@ public class OrderService {
                 .body(String.class);
 */
 
-        // With ResponseEntity return type, and with error handling for 4xx client errors.
+        // With ResponseEntity return type, and without error handling for client errors.
 /*        ResponseEntity<Inventory> inventoryResponse = restClient.get()
                 .uri("http://localhost:8081/inventory/{productId}", productId)
                 .retrieve()
@@ -73,8 +80,8 @@ public class OrderService {
 
     // Update the inventory after placing an order using 'RestClient'.
     private void updateInventory(Inventory inventory) {
-        logger.info("Updating inventory for product: " + inventory.getProductId());
-        logger.info("Current quantity: " + inventory.getQuantity());
+        logger.info("Updating inventory for product: {}, Current quantity: {}", inventory.getProductId(), inventory.getQuantity());
+
         inventory.setQuantity(inventory.getQuantity() - 1);
         restClient.post()
                 .uri("http://localhost:8081/inventory")
@@ -83,5 +90,26 @@ public class OrderService {
                 .toBodilessEntity();
     }
 
+    // =============: Call the inventory service using 'Feign client' to check if the product is in stock before placing an order.
+    public String placeOrder3(Long productId) {
+        // Use the Feign client to call the inventory service.
+        Inventory inventory = inventoryClient.getInventory(productId);
+        if (inventory == null || inventory.getQuantity() <= 0) {
+            logger.info("Product: {} not found in inventory", productId);
+            return "Product: " + productId + " is out of stock";
+        }
+
+        logger.info("Placing order for product:{}, quantity: {}", productId, inventory.getQuantity());
+        updateProductInventory(inventory);
+        return "Order placed for product: " + productId;
+    }
+
+    // Update the inventory after placing an order using 'Feign client'.
+    private void updateProductInventory(Inventory inventory) {
+        logger.info("Updating Product Inventory: {}, Current quantity: {}", inventory.getProductId(), inventory.getQuantity());
+
+        inventory.setQuantity(inventory.getQuantity() - 1);
+        inventoryClient.updateProductInventory(inventory);
+    }
 
 }
