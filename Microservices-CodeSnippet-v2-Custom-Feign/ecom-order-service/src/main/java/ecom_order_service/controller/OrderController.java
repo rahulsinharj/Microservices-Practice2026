@@ -16,18 +16,9 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping("v1/{productId}")
+    @PostMapping("v3/{productId}")
     public String placeOrder(@PathVariable Long productId) {
         return orderService.placeOrder(productId);
     }
 
-    @PostMapping("v2/{productId}")
-    public String placeOrder2(@PathVariable Long productId) {
-        return orderService.placeOrder2(productId);
-    }
-
-    @PostMapping("v3/{productId}")
-    public String placeOrder3(@PathVariable Long productId) {
-        return orderService.placeOrder3(productId);
-    }
 }
