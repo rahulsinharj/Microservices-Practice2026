@@ -27,6 +27,11 @@ public class InventoryController {
     @GetMapping("/{productId}")
     public Inventory checkInventory(@PathVariable Long productId) {
         logger.info("Checking inventory for product id {}", productId);
+//        try {
+//            Thread.sleep(15000); // Simulate a delay of 15 seconds
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
         return inventoryService.checkProduct(productId);
     }
 
